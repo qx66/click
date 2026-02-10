@@ -68,11 +68,11 @@ def main():
         if s1 >= 0.28:
             adbClick(1220,34)
             print("匹配上战斗页面，自动点击\"设置\"")
-            time.sleep(0.5)
+            time.sleep(0.3)
             
             adbClick(1890,950)
             print("匹配上战斗页面，自动点击\"返回城镇\"")
-            time.sleep(0.5)
+            time.sleep(0.3)
 
             adbClick(1384,693)
             print("匹配上战斗页面，自动点击\"确定返回\"")
