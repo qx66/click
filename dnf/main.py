@@ -2,6 +2,8 @@ import cv2
 import subprocess
 import numpy as np
 import time
+import argparse
+
 def example1():
     img1 = cv2.imread("assets/img/pk/win.png")
     img2 = cv2.imread("assets/img/pk/win-next.png")
@@ -23,7 +25,16 @@ def example1():
     score = len(good_matches) / ((len(kp1) + len(kp2)) / 2)
     print(score)
 
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--device", type=str, default="")
+args = parser.parse_args()
+device = args.device
+
 def main():
+
+
+    count = 0
     while True:
         currentImgByte = adbScreenCap()
         if currentImgByte == None:
@@ -64,8 +75,10 @@ def main():
 
         # 战斗页面 - 1: 1139，40 -> 2: x,y ->3: x,y - 考虑到战斗页面匹配比例比较差，暂时放在0.28上
         s1,s2,s3= compareWinFightPage(currentImg)
+        ss1,ss2,ss3 = compareWinFightPage2(currentImg)
         print(f"战斗页面: s1: {s1}, s2: {s2}, s3: {s3}")
-        if s1 >= 0.28:
+        print(f"战斗页面: ss1: {ss1}, ss2: {ss2}, s3: {ss3}")
+        if s1 >= 0.28 or s2>=0.3:
             adbClick(1220,34)
             print("匹配上战斗页面，自动点击\"设置\"")
             time.sleep(0.3)
@@ -91,6 +104,16 @@ def main():
 
         # 考虑到adb screenshot 本身就比较慢，所以截图的时候sleep 0.5秒
         time.sleep(0.5)
+
+
+        # 保护措施1 - 保护某些蒙层点开匹配不上页面的情况
+        # 考虑加入计时器？当联系5次没有匹配上时，点击 120，52 - 即，左上角返回按钮
+        count += 1
+        if count == 5:
+            adbClick(120, 52)
+            print(f"连续{count}次没有匹配上，点击\"左上角返回按钮\"")
+            count = 0
+
 def readByFile(filePath):
     return cv2.imread(filePath)
 
@@ -116,6 +139,10 @@ def compareWinFightPage(currentImg):
     srcImg = cv2.imread("../assets/img/pk/fight.png", cv2.IMREAD_GRAYSCALE)
     return score(srcImg, currentImg)
 
+def compareWinFightPage2(currentImg):
+    srcImg = cv2.imread("../assets/img/pk/fight2.png", cv2.IMREAD_GRAYSCALE)
+    return score(srcImg, currentImg)
+
 # 对比Pk页面
 def compareWinMainPage(currentImg):
     srcImg = cv2.imread("../assets/img/pk/main.png", cv2.IMREAD_GRAYSCALE)
@@ -132,9 +159,15 @@ def compareResultPage(currentImg):
     return score(srcImg, currentImg)
 
 def adbScreenCap():
-    cmd = [
-        "adb", "exec-out", "screencap", "-p"
-    ]
+    if device == "":
+        cmd = [
+            "adb", "exec-out", "screencap", "-p"
+        ]
+    else:
+        cmd = [
+            "adb", "-s", args.device, "exec-out", "screencap", "-p"
+        ]
+
     result = subprocess.run(
         cmd,
         stdout=subprocess.PIPE,
@@ -144,9 +177,15 @@ def adbScreenCap():
     return result.stdout  # PNG bytes
 
 def adbClick(x, y):
-    cmd = [
-        "adb", "shell", "input", "tap", str(x), str(y)
-    ]
+
+    if device == "":
+        cmd = [
+            "adb", "shell", "input", "tap", str(x), str(y)
+        ]
+    else:
+        cmd = [
+            "adb", "-s", args.device, "shell", "input", "tap", str(x), str(y)
+        ]
 
     result = subprocess.run(
         cmd,
